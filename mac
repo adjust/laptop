@@ -179,3 +179,44 @@ fi
 if [ -f "$HOME/.laptop.local" ]; then
   . "$HOME/.laptop.local"
 fi
+
+## adjust additions
+
+fancy_echo "Tuning up postgres"
+cat <<EOF >> /usr/local/var/postgres/postgresql.conf
+maintenance_work_mem = 1GB
+checkpoint_segments = 16
+checkpoint_completion_target = 0.9
+effective_cache_size = 12GB
+work_mem = 1GB
+shared_buffers = 4GB
+wal_buffers = 16MB
+max_connections = 80
+EOF
+createuser -s postgres
+brew_launchctl_restart 'postgresql'
+
+fancy_echo "Setting up gitconfig"
+echo "Please type your full name and press [ENTER]"
+read full_name
+echo "Please type your github email followed by [ENTER]"
+read email
+
+cat > ~/.gitconfig <<EOL
+[user]
+  name = ${full_name}
+  email = ${email}
+[color]
+  ui = auto
+[push]
+  default = simple
+EOL
+
+fancy_echo "Setting up ssh key"
+ssh-keygen -t rsa -C $email
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
+pbcopy < ~/.ssh/id_rsa.pub
+
+fancy_echo "Paste your ssh key on your github account"
+open https://github.com/settings/ssh
